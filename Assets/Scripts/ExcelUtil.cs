@@ -59,6 +59,14 @@ public static class ExcelUtil
         return dic;
     }
 
+    public static string SelectSaveExcleFile(string fileName, string title, string suffix = "*.xlsx")
+    {
+        string namePointer = string.Copy(fileName);
+        string tempPath = Common.FileDialog.OpenFileDialogToSave(namePointer, $"Excel表格({suffix})\0{suffix}\0", title, "");
+
+        return tempPath;
+    }
+
     public static void SaveExcel(string filePath, Dictionary<string, string> dictionary)
     {
         // 转换字典为适合 MiniExcel 的格式
@@ -177,24 +185,6 @@ public static class ExcelUtil
     }
 
 
-    private static bool IsFileLocked(string filePath)
-    {
-        try
-        {
-            using (FileStream stream = File.Open(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
-            {
-                // 文件未被锁定
-            }
-        }
-        catch (IOException)
-        {
-            // 文件被锁定
-            return true;
-        }
-
-        return false;
-    }
-
     public static void SaveExcelWithHtmlFormatting<D, T>(string filePath, string sheetName, Dictionary<D, T> dictionary)
     {
         // 设置许可证
@@ -202,34 +192,36 @@ public static class ExcelUtil
 
         try
         {
+            // 确保目录存在
+            string directory = Path.GetDirectoryName(filePath);
+            if (!Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+                Debug.Log($"创建目录: {directory}");
+            }
+
             // 检查文件是否已存在
             bool fileExists = File.Exists(filePath);
+            FileInfo fileInfo = new FileInfo(filePath);
+            
             // 检查文件是否被锁定
-            if (fileExists && IsFileLocked(filePath))
+            if (fileExists && IsFileLocked(fileInfo))
             {
-                Debug.LogError($"无法保存文件：请先关闭已打开的Excel文件 '{Path.GetFileName(filePath)}'");
+                Debug.LogError($"无法保存文件：请先关闭已打开的Excel文件 '{fileInfo.Name}'");
                 return;
             }
 
             using var package = fileExists
-                ? new ExcelPackage(new FileInfo(filePath))
+                ? new ExcelPackage(fileInfo)
                 : new ExcelPackage(); // 新文件
 
             // 关键修改：处理工作表重名
             ExcelWorksheet worksheet;
             if (package.Workbook.Worksheets.Any(w => w.Name == sheetName))
             {
-                // 方案1：删除已存在的工作表（适合覆盖场景）
+                // 删除已存在的工作表
                 package.Workbook.Worksheets.Delete(sheetName);
                 worksheet = package.Workbook.Worksheets.Add(sheetName);
-
-                // 方案2：重命名新工作表（适合保留原有数据）
-                // int suffix = 1;
-                // while (package.Workbook.Worksheets.Any(w => w.Name == $"{sheetName}_{suffix}"))
-                // {
-                //     suffix++;
-                // }
-                // worksheet = package.Workbook.Worksheets.Add($"{sheetName}_{suffix}");
             }
             else
             {
@@ -237,7 +229,7 @@ public static class ExcelUtil
                 worksheet = package.Workbook.Worksheets.Add(sheetName);
             }
 
-            // 添加表头
+            // 添加表头和数据（保持原有逻辑不变）
             var properties = typeof(T).GetProperties();
             for (int col = 0; col < properties.Length; col++)
             {
@@ -246,7 +238,6 @@ public static class ExcelUtil
                 ApplyCellStyle(cell, "font-weight:bold; background-color:#D3D3D3; text-align:center");
             }
 
-            // 添加数据行
             int row = 2;
             foreach (var item in dictionary.Values)
             {
@@ -255,7 +246,6 @@ public static class ExcelUtil
                     var cell = worksheet.Cells[row, col + 1];
                     var value = properties[col].GetValue(item)?.ToString() ?? "";
 
-                    // 处理带格式的文本
                     if (value.Contains("[") && value.Contains("]"))
                     {
                         ParseFormattedText(cell, value);
@@ -271,13 +261,35 @@ public static class ExcelUtil
                 row++;
             }
 
-            // 调整列宽（放在所有数据和格式设置完成后）
+            // 调整列宽
             for (int col = 1; col <= properties.Length; col++)
             {
                 worksheet.Column(col).AutoFit(15);
             }
 
-            package.Save();
+            // 明确保存到指定路径（对于新文件）
+            if (!fileExists)
+            {
+                package.SaveAs(fileInfo);
+            }
+            else
+            {
+                package.Save();
+            }
+            
+            Debug.Log($"文件保存成功: {filePath}");
+        }
+        catch (DirectoryNotFoundException ex)
+        {
+            Debug.LogError($"保存文件失败：目录不存在 - {ex.Message}");
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Debug.LogError($"保存文件失败：没有权限 - {ex.Message}");
+        }
+        catch (IOException ex)
+        {
+            Debug.LogError($"保存文件失败：IO错误 - {ex.Message}");
         }
         catch (Exception ex)
         {
@@ -285,6 +297,23 @@ public static class ExcelUtil
         }
     }
 
+    // 改进的文件锁定检查方法
+    private static bool IsFileLocked(FileInfo file)
+    {
+        try
+        {
+            using (FileStream stream = file.Open(FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            {
+                stream.Close();
+            }
+        }
+        catch (IOException)
+        {
+            return true;
+        }
+
+        return false;
+    }
     // 解析带格式的文本并应用到单元格
     private static void ParseFormattedText(ExcelRange cell, string formattedText)
     {

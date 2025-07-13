@@ -7,7 +7,7 @@ using UnityEngine;
 public class ExcelTool
 {
     static string extension = ".xlsx";
-    static string path_root = $"{Application.dataPath}/Excel";
+    static string path_root = $"{Application.streamingAssetsPath}/Excel";
 
     static string name_attendance = "考勤";
     static string name_attendResult = "汇总";
@@ -90,9 +90,17 @@ public class ExcelTool
             dic_result.Add(name_stuff, stuffMonthResult);
         }
 
-        //保存修改后的映射表
-        var path = $"{path_root}/{name_attendResult}{extension}";
-        ExcelUtil.SaveExcelWithHtmlFormatting(path, name_attendResultSheet, dic_result);
+        //选路径
+        //string tempPath = ExcelUtil.SelectSaveExcleFile(name_attendResult, "选择表格导出目录");
+        string tempPath = WindowsFileUtility.SelectSaveDirectory( "选择表格导出目录");
+        if (string.IsNullOrEmpty(tempPath)) return;
+        //保存
+        tempPath = $"{tempPath}\\{name_attendResult}{extension}";//$"{path_root}/{name_attendResult}{extension}";
+        ExcelUtil.SaveExcelWithHtmlFormatting(tempPath, name_attendResultSheet, dic_result);
+        //打开目录  
+        WindowsFileUtility.OpenExplorerAndSelectFile(tempPath);
+        //Common.OpenDialogDir.OpenWinFolder(Path.GetDirectoryName(tempPath), Path.GetFileName(tempPath));
+ 
     }
 
     [MenuItem("Tool/解析时间")]
