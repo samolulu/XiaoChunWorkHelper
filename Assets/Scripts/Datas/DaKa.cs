@@ -119,7 +119,7 @@ public class WorkShiftTime
         attendInfo.overTime = Math.Max(0, dEH_over) + Math.Max(0, dMH_over);
         attendInfo.lateTime = Math.Max(0,dMH < 0 ? 0 : ((dMH - 0) * 60 + dMM)); //若还有调休可抵扣要从迟到中扣掉
 
-        attendInfo.deductTime = deductTime;
+        attendInfo.deductTime = deductTime; 
 
         return attendInfo;
     }
