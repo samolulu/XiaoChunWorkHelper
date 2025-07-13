@@ -112,13 +112,14 @@ public class WorkShiftTime
         var dMH = dayDaka.Mdaka.H - reqMdaka.H;
         var dMM = dayDaka.Mdaka.M - reqMdaka.M;
 
-        if (dEH < 0 || dEH == 0 && dEM < 0) deductTime -= dEH + (dEM > 0 ? 1 : 0); //若早退则用调休抵扣
+        if (dEH < 0 || dEH == 0 && dEM < 0) deductTime -= (dEH + (dEM < 0 ? 1 : 0)); //若早退则用调休抵扣
         var dMH_over = reqMdaka.H + (reqMdaka.M > 0 ? 1 : 0) - dayDaka.Mdaka.H; // 早晨加班要按班次整点算
         dMH_over += (dMM > 0) ?-1:0;
         var dEH_over = dEH + (dEM < 0 ?-1:0);
         attendInfo.overTime = Math.Max(0, dEH_over) + Math.Max(0, dMH_over);
-        attendInfo.lateTime = dMH < 0 ? 0 : ((dMH - deductTime) * 60 + dMM); //若还有调休可抵扣要从迟到中扣掉
+        attendInfo.lateTime = Math.Max(0,dMH < 0 ? 0 : ((dMH - 0) * 60 + dMM)); //若还有调休可抵扣要从迟到中扣掉
 
+        attendInfo.deductTime = deductTime;
 
         return attendInfo;
     }
