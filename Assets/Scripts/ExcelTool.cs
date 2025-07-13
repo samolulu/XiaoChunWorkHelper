@@ -91,11 +91,11 @@ public class ExcelTool
         }
 
         //选路径
-        //string tempPath = ExcelUtil.SelectSaveExcleFile(name_attendResult, "选择表格导出目录");
-        string tempPath = WindowsFileUtility.SelectSaveDirectory( "选择表格导出目录");
+        string tempPath = ExcelUtil.SelectSaveExcleFile(name_attendResult, "选择表格导出目录");
+        //string tempPath = WindowsFileUtility.SelectSaveDirectory( "选择表格导出目录");
         if (string.IsNullOrEmpty(tempPath)) return;
         //保存
-        tempPath = $"{tempPath}\\{name_attendResult}{extension}";//$"{path_root}/{name_attendResult}{extension}";
+        //tempPath = $"{tempPath}\\{name_attendResult}{extension}";//$"{path_root}/{name_attendResult}{extension}";
         ExcelUtil.SaveExcelWithHtmlFormatting(tempPath, name_attendResultSheet, dic_result);
         //打开目录  
         WindowsFileUtility.OpenExplorerAndSelectFile(tempPath);
