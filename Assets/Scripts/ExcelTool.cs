@@ -18,8 +18,12 @@ public class ExcelTool
     static string name_attendResultSheet = "汇总表";
 
 
-    [MenuItem("Tool/汇总考勤表")]
-    private static void DoAttendanceExcel()
+    public static void OpenExcelPathRoot()
+    {
+        Common.OpenDialogDir.OpenWinFolder(Path.GetDirectoryName(path_root));
+    }
+
+    public static void DoAttendanceExcel()
     {
         //打卡记录表
         Dictionary<string, StuffMonthData> dic_daka = ExcelUtil.GetDictionary<string, StuffMonthData>(path_root, name_attendance, name_dakaSheet, keyName: "Name");
@@ -54,8 +58,11 @@ public class ExcelTool
             //此人每次排班
             var dailyShift = shift.GetDailyValues();
 
+            //输出的汇总表
             StuffMonthData stuffMonthResult = new();
             stuffMonthResult.Name = name_stuff;
+            //记录每日考勤
+            List<AttendInfo> attendInfos = new();
 
             for (int i = 0; i < dailyDaka.Length; i++)
             {
@@ -72,46 +79,48 @@ public class ExcelTool
                 }
 
                 //今天排班
+                WorkShiftTime workShiftTime = null;
                 var todayShift = dailyShift[i];
                 if (todayShift == null) continue;
                 LogTool.Log($"{name_stuff}的{i + 1}号排班:", todayShift);
-                if (!dic_shiftTime.TryGetValue(todayShift, out WorkShiftTime workShiftTime))
+                if (todayShift == WorkShiftTime.OffShiftName)
+                {
+
+                }
+                else if (!dic_shiftTime.TryGetValue(todayShift, out workShiftTime))
                 {
                     LogTool.Log($"!!班次时间没有定义:{todayShift}班,请检查{name_stuff}的{i + 1}号排班");
                     break;
                 }
 
                 //根据打卡时间和排班得出考勤结果的
-                AttendInfo attendInfo = workShiftTime.GenAttendInfo(dayDaka);
+                AttendInfo attendInfo = dayDaka.GenAttendInfo(workShiftTime);
                 LogTool.Log($"!!{name_stuff}的{i + 1}号考勤汇总:", attendInfo);
-                stuffMonthResult.SetDailyValue(stuffMonthResult, i + 1, attendInfo);
+                stuffMonthResult.SetDailyValue(i + 1, attendInfo);
+                attendInfos.Add(attendInfo);
             }
-
+            stuffMonthResult.SetMonthValue(attendInfos);
             dic_result.Add(name_stuff, stuffMonthResult);
         }
 
         //选路径
-        string tempPath = ExcelUtil.SelectSaveExcleFile(name_attendResult, "选择表格导出目录");
-        //string tempPath = WindowsFileUtility.SelectSaveDirectory( "选择表格导出目录");
+#if UNITY_EDITOR
+        string tempPath = EditorUtility.OpenFolderPanel("选择目录", path_root, "");
+        
+#else
+        //string tempPath = ExcelUtil.SelectSaveExcleFile(name_attendResult, "选择表格导出目录");
+        string tempPath = WindowsFileUtility.SelectSaveDirectory( "选择表格导出目录");
+#endif
         if (string.IsNullOrEmpty(tempPath)) return;
+        tempPath = $"{tempPath}/{name_attendResult}{extension}";
         //保存
         //tempPath = $"{tempPath}\\{name_attendResult}{extension}";//$"{path_root}/{name_attendResult}{extension}";
         ExcelUtil.SaveExcelWithHtmlFormatting(tempPath, name_attendResultSheet, dic_result);
         //打开目录  
         WindowsFileUtility.OpenExplorerAndSelectFile(tempPath);
         //Common.OpenDialogDir.OpenWinFolder(Path.GetDirectoryName(tempPath), Path.GetFileName(tempPath));
- 
+
     }
 
-    [MenuItem("Tool/解析时间")]
-    private static void Test_ParserTime()
-    {
-        string text1 = "正常（未排班）";
-        var result1 = TimeParser.ParsePunchTime(text1);
-
-            LogTool.Log($"上班时间: {result1.MorningHour}点{result1.MorningMinute}分"); 
-            LogTool.Log($"下班时间: {result1.EveningHour}点{result1.EveningMinute}分");
-   
  
-    }
 }

@@ -44,24 +44,40 @@ public class AttendInfo
     // 没有打卡时间
     public bool noDakaTime { get; set; } = false;
 
-    public override string ToString()
-    {
-        if(noDakaTime) return $"OFF";
-        return $"迟到 {lateTime}分钟, 加班 {overTime}小时, 调休 {deductTime}小时, 缺卡 {missing}次";
-    }
+    // 未入职或已离职
+    public bool noWork { get; set; } = false;
+    
+    public bool shiftDiff = false;// 排班异常(排了OFF却有打卡)
+     
     public string OutPut()
     {
-        if(noDakaTime) return $"OFF";
+        if (noWork) return string.Empty;
+        if (shiftDiff) return WorkShiftTime.ShiftDiffName;
+        if (noDakaTime) return WorkShiftTime.OffShiftName;
+        if (lateTime == 0 && overTime == 0 && deductTime == 0 && missing == 0) return WorkShiftTime.WorkNormalName; //正常上下班的就显示V
         var parts = new List<string>();
-        
+
         parts.Add(lateTime != 0 ? $"[color=#008080]迟到 {lateTime}分钟[/color]" : string.Empty);
         parts.Add(overTime != 0 ? $"加班 {overTime}小时" : string.Empty);
         parts.Add(deductTime != 0 ? $"调休 {deductTime}小时" : string.Empty);
         parts.Add(missing != 0 ? $"缺卡 {missing}次" : string.Empty);
- 
         return string.Join("\n", parts);
     }
- 
+    public string OutPutShort()
+    {
+        if (noWork) return string.Empty;
+        if (shiftDiff) return $"[color=#FF00FF]{WorkShiftTime.ShiftDiffName}[/color]";
+        if (noDakaTime) return WorkShiftTime.OffShiftName;
+       
+        var parts = new List<string>();
+        
+        if(lateTime != 0 )  parts.Add($"[color=#FF0000]迟 {lateTime}[/color]" );
+        if(overTime != 0 )  parts.Add($"[color=#000000]加 {overTime}[/color]");
+        if(deductTime != 0 )parts.Add($"[color=#0000FF]补 {deductTime}[/color]");
+        if(missing != 0 )   parts.Add($"[color=#FFA500]缺 {missing}[/color]");
+        if (parts.Count == 0) return $"[color=#00FF00]{WorkShiftTime.WorkNormalName}[/color]"; //正常上下班的就显示V
+        return string.Join("\n", parts);
+    }
 }
 
 /// <summary>
@@ -69,6 +85,9 @@ public class AttendInfo
 /// </summary>
 public class WorkShiftTime
 {
+    public static readonly string OffShiftName = "OFF";
+    public static readonly string WorkNormalName = "V";
+    public static readonly string ShiftDiffName = "异常";
     public string Name { get; set; }
     public string 上班时间 { get; set; }
     public string 下班时间 { get; set; }
@@ -85,44 +104,7 @@ public class WorkShiftTime
         return new Daka(Ed[0], Ed[1]);
     }
 
-    /// <summary>
-    /// 根据打卡时间计算该排班考勤结果 
-    /// </summary>
-    /// <param name="dayDaka"></param>
-    /// <returns></returns>
-    public AttendInfo GenAttendInfo(DayDaka dayDaka)
-    {
-        AttendInfo attendInfo = new();
 
-        var reqMdaka = GetMdaka();
-        var reqEdaka = GetEdaka();
-
-        var deductTime = dayDaka.deductTime;
-        attendInfo.deductTime = deductTime;
-        attendInfo.offTime = dayDaka.offTime;
-        attendInfo.missing = dayDaka.missing;
-
-        if (dayDaka.NoSorce)
-        {
-            attendInfo.noDakaTime = true;
-            return attendInfo;
-        }
-        var dEH = dayDaka.Edaka.H - reqEdaka.H;
-        var dEM = dayDaka.Edaka.M - reqEdaka.M;
-        var dMH = dayDaka.Mdaka.H - reqMdaka.H;
-        var dMM = dayDaka.Mdaka.M - reqMdaka.M;
-
-        if (dEH < 0 || dEH == 0 && dEM < 0) deductTime -= (dEH + (dEM < 0 ? 1 : 0)); //若早退则用调休抵扣
-        var dMH_over = reqMdaka.H + (reqMdaka.M > 0 ? 1 : 0) - dayDaka.Mdaka.H; // 早晨加班要按班次整点算
-        dMH_over += (dMM > 0) ?-1:0;
-        var dEH_over = dEH + (dEM < 0 ?-1:0);
-        attendInfo.overTime = Math.Max(0, dEH_over) + Math.Max(0, dMH_over);
-        attendInfo.lateTime = Math.Max(0,dMH < 0 ? 0 : ((dMH - 0) * 60 + dMM)); //若还有调休可抵扣要从迟到中扣掉
-
-        attendInfo.deductTime = deductTime; 
-
-        return attendInfo;
-    }
 }
 
 
@@ -149,9 +131,10 @@ public class Daka
 
 public class DayDaka 
 {
-    public DayDaka(bool nosorce = false)
+    public DayDaka(bool nosorce = false, bool noWork = false)
     {
         NoSorce = nosorce;
+        NoWork = noWork;
     }
 
     // 早上打卡时间
@@ -170,14 +153,16 @@ public class DayDaka
     public int missing { get; set; }
 
     public bool NoSorce = false;// 获取不到时间
+    public bool NoWork = false;// 未入职或已离职
 
     //解析表格文本,获得一个打卡时间数据
     public static DayDaka Get(string str)
     {
+        bool noWork = str == "--";
         var result1 = TimeParser.ParsePunchTime(str);
         if (result1.Success)
         {
-            var dayDaka = new DayDaka(false);
+            var dayDaka = new DayDaka(false, noWork);
             dayDaka.Mdaka = new(result1.MorningHour, result1.MorningMinute);
             dayDaka.Edaka = new(result1.EveningHour, result1.EveningMinute);
 
@@ -194,6 +179,58 @@ public class DayDaka
 
     }
 
+    /// <summary>
+    /// 根据打卡时间计算该排班考勤结果 
+    /// </summary>
+    /// <param name="dayDaka"></param>
+    /// <returns></returns>
+    public AttendInfo GenAttendInfo(WorkShiftTime workShiftTime)
+    {
+        AttendInfo attendInfo = new();
+
+        //没就职的
+        if (this.NoWork)
+        {
+            attendInfo.noWork = true;
+            return attendInfo;
+        }
+        //没打卡时间的
+        if (this.NoSorce)
+        {
+            attendInfo.noDakaTime = true;
+            return attendInfo;
+        }
+        //排班异常的
+        if (workShiftTime == null)
+        {
+            attendInfo.shiftDiff = true;
+            return attendInfo;
+        }
+        var reqMdaka = workShiftTime.GetMdaka();
+        var reqEdaka = workShiftTime.GetEdaka();
+
+        var deductTime = this.deductTime;
+        attendInfo.deductTime = deductTime;
+        attendInfo.offTime = this.offTime;
+        attendInfo.missing = this.missing;
+
+        var dEH = this.Edaka.H - reqEdaka.H + (this.Edaka.H < TimeParser.OverDayHour ? 24 : 0);
+        var dEM = this.Edaka.M - reqEdaka.M;
+        var dMH = this.Mdaka.H - reqMdaka.H;
+        var dMM = this.Mdaka.M - reqMdaka.M;
+
+        if (dEH < 0 || dEH == 0 && dEM < 0) deductTime -= (dEH + (dEM < 0 ? 1 : 0)); //若早退则用调休抵扣
+        var dMH_over = reqMdaka.H + (reqMdaka.M > 0 ? 1 : 0) - this.Mdaka.H; // 早晨加班要按班次整点算
+        dMH_over += (dMM > 0) ? -1 : 0;
+        var dEH_over = dEH + (dEM < 0 ? -1 : 0);
+        attendInfo.overTime = Math.Max(0, dEH_over) + Math.Max(0, dMH_over);
+        attendInfo.lateTime = Math.Max(0, dMH < 0 ? 0 : ((dMH - 0) * 60 + dMM)); //若还有调休可抵扣要从迟到中扣掉
+
+        attendInfo.deductTime = deductTime;
+
+        return attendInfo;
+    }
+
     // 验证时间是否合法
     public bool IsValid()
     {
@@ -204,6 +241,7 @@ public class DayDaka
     public override string ToString()
     {
         if(NoSorce) return "没有打卡记录";
+        if(NoWork) return "未入职或已离职";
         return $"早上 {Mdaka.H:D2}:{Mdaka.M:D2}, 晚上 {Edaka.H:D2}:{Edaka.M:D2}, 调休 {deductTime}小时, 缺卡 {missing}次";
     }
 
@@ -215,6 +253,7 @@ public class DayDaka
 public class StuffMonthData
 {
     public string Name { get; set; }
+    public string 月统计 { get; set; }//月统计
     public string D1 { get; set; }
     public string D2 { get; set; }
     public string D3 { get; set; }
@@ -272,14 +311,29 @@ public class StuffMonthData
         return values;
     }
 
-    //写入考勤汇总
-    public void SetDailyValue(StuffMonthData obj, int day, AttendInfo attendInfo)
+    //写入每日考勤汇总
+    public void SetDailyValue( int day, AttendInfo attendInfo)
     {
         string propertyName = $"D{day}";
         var property = GetType().GetProperty(propertyName);
 
-        var value = attendInfo.OutPut();
+        var value = attendInfo.OutPutShort();
         object convertedValue = Convert.ChangeType(value, property.PropertyType);
-        property.SetValue(obj, convertedValue);
+        property.SetValue(this, convertedValue);
+    }  
+
+    //写入月考勤汇总
+    public void SetMonthValue(List<AttendInfo> attendInfos)
+    {
+        AttendInfo attendInfo_month = new();
+        foreach (var info in attendInfos)
+        {
+            attendInfo_month.lateTime += info.lateTime;
+            attendInfo_month.overTime += info.overTime;
+            attendInfo_month.deductTime += info.deductTime;
+            attendInfo_month.offTime += info.offTime;
+            attendInfo_month.missing += info.missing;
+        }
+        月统计 = attendInfo_month.OutPutShort();
     }  
 }

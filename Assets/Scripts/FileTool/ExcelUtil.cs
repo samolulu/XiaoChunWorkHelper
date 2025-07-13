@@ -11,7 +11,7 @@ using OfficeOpenXml.Style;
 using System.Drawing;
 using System.Text.RegularExpressions;
 using Color = System.Drawing.Color;
-
+using MiniExcelLibs.OpenXml; // 确保引用正确的命名空间
 public static class ExcelUtil
 {
     public static string extension = ".xlsx";
@@ -255,16 +255,31 @@ public static class ExcelUtil
                         cell.Value = value;
                     }
 
-                    cell.Style.VerticalAlignment = ExcelVerticalAlignment.Top;
+                    cell.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+                    cell.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
                     cell.Style.WrapText = true;
+
+                    // 设置背景颜色（关键代码）
+                    if (value == string.Empty)
+                    {
+                        cell.Style.Fill.SetBackground(Color.LightGray, ExcelFillStyle.Solid);
+                    }
+                    if (value == WorkShiftTime.OffShiftName)
+                    {
+                        cell.Style.Fill.SetBackground(Color.IndianRed, ExcelFillStyle.Solid);
+                    }
                 }
                 row++;
+
             }
+
+            // 设置边框样式（细边框，黑色）
+            //SetBorder(worksheet.Cells, ExcelBorderStyle.Thin, Color.Black);
 
             // 调整列宽
             for (int col = 1; col <= properties.Length; col++)
             {
-                worksheet.Column(col).AutoFit(15);
+                worksheet.Column(col).AutoFit();
             }
 
             // 明确保存到指定路径（对于新文件）
@@ -295,6 +310,22 @@ public static class ExcelUtil
         {
             Debug.LogError($"保存数据时出错: {ex.Message}");
         }
+    }
+
+    private static void SetBorder(ExcelRange range, ExcelBorderStyle style, Color color)
+    {
+        // 设置四周边框
+        range.Style.Border.Top.Style = style;
+        range.Style.Border.Bottom.Style = style;
+        range.Style.Border.Left.Style = style;
+        range.Style.Border.Right.Style = style;
+
+        // 设置边框颜色
+        range.Style.Border.Top.Color.SetColor(color);
+        range.Style.Border.Bottom.Color.SetColor(color);
+        range.Style.Border.Left.Color.SetColor(color);
+        range.Style.Border.Right.Color.SetColor(color);
+ 
     }
 
     // 改进的文件锁定检查方法
