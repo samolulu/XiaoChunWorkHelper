@@ -25,8 +25,12 @@ public class ExcelTool
 
     public static void DoAttendanceExcel()
     {
+        //选路径
+ 		var tempPath = ExcelUtil.SelectSaveExcleFile(name_attendResult, "选择表格导出目录");
+        if (string.IsNullOrEmpty(tempPath)) return;
+		
         //打卡记录表
-        Dictionary<string, StuffMonthData> dic_daka = ExcelUtil.GetDictionary<string, StuffMonthData>(path_root, name_attendance, name_dakaSheet, keyName: "Name");
+		Dictionary<string, StuffMonthData> dic_daka = ExcelUtil.GetDictionary<string, StuffMonthData>(path_root, name_attendance, name_dakaSheet, keyName: "Name");
         //员工表
         Dictionary<string, Stuff> dic_stuffs = ExcelUtil.GetDictionary<string, Stuff>(path_root, name_attendance, name_stuffSheet, keyName: "Name");
         //班次表
@@ -103,21 +107,9 @@ public class ExcelTool
             dic_result.Add(name_stuff, stuffMonthResult);
         }
 
-        //选路径
-#if UNITY_EDITOR
-        string tempPath = EditorUtility.OpenFolderPanel("选择目录", path_root, "");
-        
-#else
-        //string tempPath = ExcelUtil.SelectSaveExcleFile(name_attendResult, "选择表格导出目录");
-        string tempPath = WindowsFileUtility.SelectSaveDirectory( "选择表格导出目录");
-#endif
-        if (string.IsNullOrEmpty(tempPath)) return;
-        tempPath = $"{tempPath}/{name_attendResult}{extension}";
-        //保存
-        //tempPath = $"{tempPath}\\{name_attendResult}{extension}";//$"{path_root}/{name_attendResult}{extension}";
+ 
         ExcelUtil.SaveExcelWithHtmlFormatting(tempPath, name_attendResultSheet, dic_result);
         //打开目录  
-        //WindowsFileUtility.OpenExplorerAndSelectFile(tempPath);
         Common.OpenDialogDir.OpenWinFolder(Path.GetDirectoryName(tempPath), Path.GetFileName(tempPath));
 
     }

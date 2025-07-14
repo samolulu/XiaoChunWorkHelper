@@ -178,11 +178,7 @@ namespace Common
 
                 Debug.LogError($" e.Message:{e.Message}");
             }
-            finally
-            {
-                sfn.file = null;
-                sfn.fileTitle = null;
-            }
+ 
             return string.Empty;
         }
 
