@@ -64,10 +64,8 @@ public class TimeParser
             return (false, true, 0, 0, true, 0, 0);
 
         // 确定早晚打卡时间
-        bool morningMissing = true;
         int morningHour = 0;
         int morningMinute = 0;
-        bool eveningMissing = true;
         int eveningHour = 0;
         int eveningMinute = 0;
 
@@ -85,23 +83,17 @@ public class TimeParser
                 SetEveningTime(punch1.Value, ref eveningHour, ref eveningMinute);
             }
 
-            morningMissing = hasMorningMissing;
-            eveningMissing = hasEveningMissing;
         }
-        else if (punch1.HasValue)
+        else if (punch1.HasValue)// 只有一个打卡时间
         {
-            // 只有一个打卡时间
-            if (punch1.Value.Hours < 12 || punch1.Value.Hours >= 24)
+            //只打了早上
+            if (hasEveningMissing)
             {
                 SetMorningTime(punch1.Value, ref morningHour, ref morningMinute);
-                morningMissing = hasMorningMissing;
-                eveningMissing = true;
             }
-            else
+            else//打了晚上
             {
                 SetEveningTime(punch1.Value, ref eveningHour, ref eveningMinute);
-                morningMissing = true;
-                eveningMissing = hasEveningMissing;
             }
         }
         else
@@ -110,7 +102,7 @@ public class TimeParser
             return (false, true, 0, 0, true, 0, 0);
         }
 
-        return (true, morningMissing, morningHour, morningMinute, eveningMissing, eveningHour, eveningMinute);
+        return (true, hasMorningMissing, morningHour, morningMinute, hasEveningMissing, eveningHour, eveningMinute);
     }
 
     private static TimeSpan ApplyOverDayAdjustment(TimeSpan time)

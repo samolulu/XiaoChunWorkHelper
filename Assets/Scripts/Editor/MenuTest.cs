@@ -15,8 +15,8 @@ public class MenuTest
     [MenuItem("Tool/考勤单元测试")]
     private static void Test_ParserTime()
     {
-        var todayShift = "A";
-        string tex_daka = "正常- 09:42; 21:02";
+        var todayShift = "D";
+        string tex_daka = "正常- 12:56  缺卡(22:00);";
         //var result1 = TimeParser.ParsePunchTime(text1);
         ExcelTool.Test_SingleTest(tex_daka, todayShift);
     }
