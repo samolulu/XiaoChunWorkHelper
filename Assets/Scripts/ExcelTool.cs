@@ -17,7 +17,6 @@ public class ExcelTool
     static string name_stuffShiftSheet = "排班表";
     static string name_attendResultSheet = "汇总表";
 
-
     public static void OpenExcelPathRoot()
     {
         Common.OpenDialogDir.OpenWinFolder(Path.GetDirectoryName(path_root));
@@ -114,5 +113,26 @@ public class ExcelTool
 
     }
 
- 
+    public static WorkShiftTime GetWorkShiftTime(string name)
+    {
+        Dictionary<string, WorkShiftTime> dic_shiftTime = ExcelUtil.GetDictionary<string, WorkShiftTime>(path_root, name_attendance, name_shiftTimeSheet, keyName: "Name");
+        dic_shiftTime.TryGetValue(name, out WorkShiftTime workShiftTime);
+        return workShiftTime;
+    }
+
+    public static string Test_SingleTest(string tex_daka, string todayShift)
+    {
+        var dayDaka = DayDaka.Get(tex_daka);
+
+        LogTool.Log($"上班时间: {dayDaka.Mdaka.H}点{dayDaka.Mdaka.M}分, 是否缺卡:{dayDaka.Mdaka.Missing}");
+        LogTool.Log($"下班时间: {dayDaka.Edaka.H}点{dayDaka.Edaka.M}分, 是否缺卡:{dayDaka.Edaka.Missing}");
+
+
+        WorkShiftTime workShiftTime = GetWorkShiftTime(todayShift);
+
+        AttendInfo attendInfo = dayDaka.GenAttendInfo(workShiftTime);
+        var output = attendInfo.OutPut();
+        LogTool.Log($"!!测试考勤汇总:", output);
+        return output;
+    }
 }

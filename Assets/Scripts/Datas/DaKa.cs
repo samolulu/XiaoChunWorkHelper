@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 /// <summary>
 /// 员工表
@@ -105,16 +106,18 @@ public class WorkShiftTime
 
 public class Daka
 {
-    public Daka(int h, int m)
+    public Daka(int h, int m, bool missing = false)
     {
         H = h;
         M = m;
+        Missing = missing;
     }
 
     // 打卡时间
     public int H { get; set; } = 0; // 小时 (0-23)
     public int M { get; set; } = 0;// 分钟 (0-59) 
 
+    public bool Missing = false; //缺卡
 
     // 验证时间是否合法
     public bool IsValid()
@@ -122,6 +125,7 @@ public class Daka
         return H >= 0 && H < 24 && M >= 0 && M < 60;
     }
 
+    public float ToFloat() => H + M / 60.0f;
 }
 
 public class DayDaka 
@@ -143,7 +147,6 @@ public class DayDaka
 
     // 调休小时
     public int deductTime { get; set; }  
-
     // 缺卡次数
     public int missing { get; set; }
 
@@ -158,20 +161,35 @@ public class DayDaka
         if (result1.Success)
         {
             var dayDaka = new DayDaka(false, noWork);
-            dayDaka.Mdaka = new(result1.MorningHour, result1.MorningMinute);
-            dayDaka.Edaka = new(result1.EveningHour, result1.EveningMinute);
-
-            if (str.Contains("缺卡")) dayDaka.missing = 1;
-            //NeedDo:请假时间计算,可能需要区分各种假
-            // if (str.Contains("请假"))
-            // {
-
-            // }
+            dayDaka.InitDakaTime(result1);    
             return dayDaka;
         }
     
         return new DayDaka(true);
 
+    }
+
+    //根据打卡机表格文本解析结果,初始化打开时间数据
+    public void InitDakaTime((
+        bool Success,
+        bool MorningMissing,
+        int MorningHour,
+        int MorningMinute,
+        bool EveningMissing,
+        int EveningHour,
+        int EveningMinute
+    ) result1)
+    {
+            Mdaka = new(result1.MorningHour, result1.MorningMinute, result1.MorningMissing);
+            Edaka = new(result1.EveningHour, result1.EveningMinute, result1.EveningMissing);
+
+            missing = (result1.MorningMissing?1:0) + (result1.EveningMissing?1:0);
+
+            //NeedDo:请假时间计算,可能需要区分各种假
+            // if (str.Contains("请假"))
+            // {
+
+            // }
     }
 
     /// <summary>
@@ -209,17 +227,20 @@ public class DayDaka
         attendInfo.offTime = this.offTime;
         attendInfo.missing = this.missing;
 
-        var dEH = this.Edaka.H - reqEdaka.H + (this.Edaka.H < TimeParser.OverDayHour ? 24 : 0);
-        var dEM = this.Edaka.M - reqEdaka.M;
-        var dMH = this.Mdaka.H - reqMdaka.H;
-        var dMM = this.Mdaka.M - reqMdaka.M;
+        //计算加班和迟到,若早上缺卡则早上无需计算迟到和加班了,若晚上缺卡则无需计算早退和加班了;
+        var dEH = this.Edaka.ToFloat() - reqEdaka.ToFloat() + (this.Edaka.H < TimeParser.OverDayHour ? 24 : 0);
+        var dMH = this.Mdaka.ToFloat() - reqMdaka.ToFloat();
 
-        if (dEH < 0 || dEH == 0 && dEM < 0) deductTime -= (dEH + (dEM < 0 ? 1 : 0)); //若早退则用调休抵扣
-        var dMH_over = reqMdaka.H + (reqMdaka.M > 0 ? 1 : 0) - this.Mdaka.H; // 早晨加班要按班次整点算
-        dMH_over += (dMM > 0) ? -1 : 0;
-        var dEH_over = dEH + (dEM < 0 ? -1 : 0);
+        if (!Edaka.Missing && dEH < 0) deductTime -= dEH.CustomCeil(); //若早退则用调休抵扣
+
+        // 早上加班:要按班次整点(向上取整)减去上班打卡时间,然后向下取整
+        var dMH_over = Mdaka.Missing ? 0 : ( reqMdaka.ToFloat().CustomCeil() - this.Mdaka.ToFloat()).CustomFloor();
+        //晚上加班
+        var dEH_over = Edaka.Missing ? 0 : dEH.CustomFloor();
         attendInfo.overTime = Math.Max(0, dEH_over) + Math.Max(0, dMH_over);
-        attendInfo.lateTime = Math.Max(0, dMH < 0 ? 0 : ((dMH - 0) * 60 + dMM)); //若还有调休可抵扣要从迟到中扣掉
+
+        //迟到分钟
+        attendInfo.lateTime = Mdaka.Missing ? 0 : Math.Max(0, Mathf.RoundToInt(dMH * 60f));
 
         attendInfo.deductTime = deductTime;
 
