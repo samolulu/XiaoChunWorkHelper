@@ -21,10 +21,16 @@ public class ExcelTool
         Common.OpenDialogDir.OpenWinFolder(Path.GetDirectoryName(path_root));
     }
 
-    public static void DoAttendanceExcel()
+    public static async void DoAttendanceExcel()
     {
         //选路径
- 		var tempPath = ExcelUtil.SelectSaveExcleFile(name_attendResult, "选择表格导出目录");
+ 		//var tempPath = ExcelUtil.SelectSaveExcleFile(name_attendResult, "选择表格导出目录");
+		string tempPath = await Common.FileDialog.OpenFileDialogToSaveAsync(
+            name_attendResult, 
+            "Excel文件(*.xlsx)\0*.xlsx\0所有文件(*.*)\0*.*\0", 
+            "选择表格导出目录", 
+            "xlsx"
+        );
         if (string.IsNullOrEmpty(tempPath)) return;
 		
         //打卡记录表

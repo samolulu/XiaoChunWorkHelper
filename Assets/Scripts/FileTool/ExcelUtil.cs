@@ -67,13 +67,13 @@ public static class ExcelUtil
         return dic;
     }
 
-    public static string SelectSaveExcleFile(string fileName, string title, string suffix = "*.xlsx")
-    {
-        string namePointer = string.Copy(fileName);
-        string tempPath = Common.FileDialog.OpenFileDialogToSave(namePointer, $"Excel表格({suffix})\0{suffix}\0", title, "");
+    // public static async  string SelectSaveExcleFile(string fileName, string title, string suffix = "*.xlsx")
+    // {
+    //     //string namePointer = string.Copy(fileName);
+    //     //string tempPath = Common.FileDialog.OpenFileDialogToSave(namePointer, $"Excel表格({suffix})\0{suffix}\0", title, "");
 
-        return tempPath;
-    }
+    //     return tempPath;
+    // }
 
     public static void SaveExcel(string filePath, Dictionary<string, string> dictionary)
     {
