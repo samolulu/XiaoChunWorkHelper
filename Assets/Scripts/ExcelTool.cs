@@ -1,7 +1,6 @@
 
 using System.Collections.Generic;
 using System.IO;
-using UnityEditor;
 using UnityEngine;
 
 public class ExcelTool
@@ -124,8 +123,8 @@ public class ExcelTool
     {
         var dayDaka = DayDaka.Get(tex_daka);
 
-        LogTool.Log($"上班时间: {dayDaka.Mdaka.H}点{dayDaka.Mdaka.M}分, 是否缺卡:{dayDaka.Mdaka.Missing}");
-        LogTool.Log($"下班时间: {dayDaka.Edaka.H}点{dayDaka.Edaka.M}分, 是否缺卡:{dayDaka.Edaka.Missing}");
+        if(dayDaka.Mdaka != null)LogTool.Log($"上班时间: {dayDaka.Mdaka.H}点{dayDaka.Mdaka.M}分, 是否缺卡:{dayDaka.Mdaka.Missing}");
+        if(dayDaka.Edaka != null)LogTool.Log($"下班时间: {dayDaka.Edaka.H}点{dayDaka.Edaka.M}分, 是否缺卡:{dayDaka.Edaka.Missing}");
 
 
         WorkShiftTime workShiftTime = GetWorkShiftTime(todayShift);
