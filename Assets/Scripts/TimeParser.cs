@@ -6,7 +6,7 @@ public class TimeParser
     public static readonly int OverDayHour = 6;
     private static readonly Regex ActualPunchPattern = new Regex(@"(?<!\()\b(\d{1,2}:\d{2})\b(?!\))");
     private static readonly Regex MissingPunchPattern = new Regex(@"缺卡\((\d{1,2}:\d{2})\)");
-    private static readonly Regex NotScheduledPattern = new Regex(@"正常\（未排班\）");
+    private static readonly Regex NotScheduledPattern = new Regex(@"^正常\（未排班\）$");
 
     // 规则 1：处理了跨天加班时间
     // 规则 2：通过时间大小判断早晚打卡
