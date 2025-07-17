@@ -44,8 +44,17 @@ public static class ExcelUtil
             for (int i = 0; i < listT.Count; ++i)
             {
                 var value = listT[i];
-                if (value == null) continue;
+				if (value == null)
+				{
+					Debug.LogError($"null value on GetDictionary:{excelName}:{sheetName}:第{i+2}行为空");
+					continue;
+				}
                 key = value.GetPropertyValue(keyName);
+				if ((TKey)key == null)
+				{
+					Debug.LogError($"null key on GetDictionary:{excelName}:{sheetName}:第{i+2}行为空");
+					continue;
+				}
                 dic[(TKey)key] = value;
             }
         }
