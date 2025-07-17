@@ -47,7 +47,7 @@ public class ExcelTool
             if (!dic_stuffs.TryGetValue(item.Name, out Stuff stuff))
             {
                 LogTool.Log($"!!人员表中没有登记:{item.Name}");
-                break;
+                continue;
             }
             var name_stuff = stuff.报表名字;
 
@@ -55,7 +55,7 @@ public class ExcelTool
             if (!dic_stuffShift.TryGetValue(name_stuff, out StuffMonthData shift))
             {
                 LogTool.Log($"!!没有{name_stuff}本月的排班数据");
-                break;
+                continue;
             }
             //此人每次排班
             var dailyShift = shift.GetDailyValues();
@@ -71,7 +71,7 @@ public class ExcelTool
                 var dayDakaStr = dailyDaka[i];
                 if (dayDakaStr == null) continue;
                 var dayDaka = DayDaka.Get(dayDakaStr);
-                LogTool.Log($"{name_stuff}的{i + 1}号打卡记录:", dayDaka);
+                //LogTool.Log($"{name_stuff}的{i + 1}号打卡记录:", dayDaka);
                 //LogTool.Log($"{name_stuff}的{i + 1}号打卡记录", datas[i]);
 
                 if (dailyShift.Length < i + 1)
@@ -84,7 +84,7 @@ public class ExcelTool
                 WorkShiftTime workShiftTime = null;
                 var todayShift = dailyShift[i];
                 if (todayShift == null) continue;
-                LogTool.Log($"{name_stuff}的{i + 1}号排班:", todayShift);
+                //LogTool.Log($"{name_stuff}的{i + 1}号排班:", todayShift);
                 if (todayShift == WorkShiftTime.OffShiftName)
                 {
 
@@ -92,12 +92,12 @@ public class ExcelTool
                 else if (!dic_shiftTime.TryGetValue(todayShift, out workShiftTime))
                 {
                     LogTool.Log($"!!班次时间没有定义:{todayShift}班,请检查{name_stuff}的{i + 1}号排班");
-                    break;
+                    continue;
                 }
 
                 //根据打卡时间和排班得出考勤结果的
                 AttendInfo attendInfo = dayDaka.GenAttendInfo(workShiftTime);
-                LogTool.Log($"!!{name_stuff}的{i + 1}号考勤汇总:", attendInfo);
+                //LogTool.Log($"!!{name_stuff}的{i + 1}号考勤汇总:", attendInfo);
                 stuffMonthResult.SetDailyValue(i + 1, attendInfo);
                 attendInfos.Add(attendInfo);
             }
