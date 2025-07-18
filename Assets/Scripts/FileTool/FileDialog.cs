@@ -14,16 +14,33 @@ public class MainThreadDispatcher : MonoBehaviour
     private static readonly ConcurrentQueue<Action> _actionQueue = new ConcurrentQueue<Action>();
     private static int _mainThreadId;
 
-    public static MainThreadDispatcher Instance
+public static MainThreadDispatcher Instance
     {
         get
         {
+            // 先查找场景中是否已存在实例
             if (_instance == null)
             {
-                GameObject obj = new GameObject("MainThreadDispatcher");
-                _instance = obj.AddComponent<MainThreadDispatcher>();
-                if(Application.isPlaying)DontDestroyOnLoad(obj);
-                _mainThreadId = Thread.CurrentThread.ManagedThreadId;
+                _instance = FindObjectOfType<MainThreadDispatcher>();
+                
+                // 如果场景中没有，创建新的GameObject
+                if (_instance == null)
+                {
+                    GameObject obj = new GameObject("MainThreadDispatcher");
+                    _instance = obj.AddComponent<MainThreadDispatcher>();
+                    
+                    // 仅在运行时设置DontDestroyOnLoad
+                    if (Application.isPlaying)
+                        DontDestroyOnLoad(obj);
+                    
+                    _mainThreadId = Thread.CurrentThread.ManagedThreadId;
+                }
+                else
+                {
+                    // 如果找到实例，初始化主线程ID（如果尚未初始化）
+                    if (_mainThreadId == 0)
+                        _mainThreadId = Thread.CurrentThread.ManagedThreadId;
+                }
             }
             return _instance;
         }
@@ -310,44 +327,44 @@ namespace Common
                 return string.Empty;
             });
         }
-
+ 
         /// <summary>
-        /// 打开文件选择对话框（异步，自动切换主线程）
-        /// </summary>
-        public static async Task<string> OpenFileAsync(string filter, string title, string defExt)
-        {
-            return await MainThreadDispatcher.Instance.ExecuteOnMainThreadAsync(() =>
-            {
-                try
-                {
-                    var ofn = new OpenFileDialogStruct();
-                    ofn.lStructSize = Marshal.SizeOf(ofn);
-                    ofn.hwndOwner = OpenFileDialog.GetForegroundWindow();
-                    ofn.lpstrFilter = filter;
-                    ofn.lpstrTitle = title;
-                    ofn.lpstrDefExt = defExt;
-                    ofn.lpstrInitialDir = Environment.GetFolderPath(Environment.SpecialFolder.MyComputer);
+		/// 打开文件选择对话框（异步，自动切换主线程）
+		/// </summary>
+		public static async Task<string> OpenFileAsync(string filter, string title, string defExt)
+		{
+			return await MainThreadDispatcher.Instance.ExecuteOnMainThreadAsync(() =>
+			{
+				try
+				{
+					var ofn = new OpenFileDialogStruct();
+					ofn.lStructSize = Marshal.SizeOf(ofn);
+					ofn.hwndOwner = OpenFileDialog.GetForegroundWindow();
+					ofn.lpstrFilter = filter;
+					ofn.lpstrTitle = title;
+					ofn.lpstrDefExt = defExt;
+					ofn.lpstrInitialDir = Environment.GetFolderPath(Environment.SpecialFolder.MyComputer);
 
-                    // 初始化缓冲区
-                    ofn.lpstrFile = new string('\0', 1024);
-                    ofn.nMaxFile = 1024;
-                    ofn.lpstrFileTitle = new string('\0', 256);
-                    ofn.nMaxFileTitle = 256;
+					// 初始化缓冲区
+					ofn.lpstrFile = new string('\0', 1024);
+					ofn.nMaxFile = 1024;
+					ofn.lpstrFileTitle = new string('\0', 256);
+					ofn.nMaxFileTitle = 256;
 
-                    ofn.Flags = 0x00080000 | 0x00001000 | 0x00000800 | 0x00000200 | 0x00000008;
+					ofn.Flags = 0x00080000 | 0x00001000 | 0x00000800 | 0x00000200 | 0x00000008;
 
-                    if (OpenFileDialog.GetOpenFileName(ofn))
-                    {
-                        return ofn.lpstrFile.TrimEnd('\0');
-                    }
-                }
-                catch (Exception e)
-                {
-                    UnityEngine.Debug.LogError($"文件选择失败: {e.Message}");
-                }
-                return string.Empty;
-            });
-        }
+					if (OpenFileDialog.GetOpenFileName(ofn))
+					{
+						return ofn.lpstrFile.TrimEnd('\0');
+					}
+				}
+				catch (Exception e)
+				{
+					UnityEngine.Debug.LogError($"文件选择失败: {e.Message}");
+				}
+				return string.Empty;
+			});
+		}
     }
 
     internal static class OpenFileDialog

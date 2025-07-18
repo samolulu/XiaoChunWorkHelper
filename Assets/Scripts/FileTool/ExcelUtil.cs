@@ -10,6 +10,7 @@ using OfficeOpenXml;
 using OfficeOpenXml.Style;
 using System.Text.RegularExpressions;
 using Color = System.Drawing.Color;
+using System.Threading.Tasks;
 
 public static class ExcelUtil
 {
@@ -67,13 +68,16 @@ public static class ExcelUtil
         return dic;
     }
 
-    // public static async  string SelectSaveExcleFile(string fileName, string title, string suffix = "*.xlsx")
-    // {
-    //     //string namePointer = string.Copy(fileName);
-    //     //string tempPath = Common.FileDialog.OpenFileDialogToSave(namePointer, $"Excel表格({suffix})\0{suffix}\0", title, "");
-
-    //     return tempPath;
-    // }
+    public static async Task<string> SelectSaveExcleFile(string fileName, string title)
+    {
+		string selectPath = await Common.FileDialog.OpenFileDialogToSaveAsync(
+			fileName,
+			"Excel文件(*.xlsx)\0*.xlsx\0所有文件(*.*)\0*.*\0",
+			title,
+			"xlsx"
+		);
+		return selectPath;
+    }
 
     public static void SaveExcel(string filePath, Dictionary<string, string> dictionary)
     {
