@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
 public class TimeParser
@@ -8,18 +9,13 @@ public class TimeParser
     private static readonly Regex MissingPunchPattern = new Regex(@"缺卡\((\d{1,2}:\d{2})\)");
     private static readonly Regex NotScheduledPattern = new Regex(@"^正常\（未排班\）$");
 
-    // 规则 1：处理了跨天加班时间
-    // 规则 2：通过时间大小判断早晚打卡
-    // 规则 3：记录了早晚缺卡状态
-    // 规则 4：不依赖 "正常" 文本判断
-    // 规则 5：返回值结构符合要求
     public static (
-        bool Success,
-        bool MorningMissing,
-        int MorningHour,
-        int MorningMinute,
-        bool EveningMissing,
-        int EveningHour,
+        bool Success, 
+        bool MorningMissing, 
+        int MorningHour, 
+        int MorningMinute, 
+        bool EveningMissing, 
+        int EveningHour, 
         int EveningMinute
     ) ParsePunchTime(string text)
     {
@@ -34,15 +30,15 @@ public class TimeParser
         var actualMatches = ActualPunchPattern.Matches(text);
         var missingMatches = MissingPunchPattern.Matches(text);
 
-        // 解析实际打卡时间
-        TimeSpan? punch1 = null;
-        TimeSpan? punch2 = null;
-
-        if (actualMatches.Count >= 1 && TryParseTime(actualMatches[0].Groups[1].Value, out TimeSpan time1))
-            punch1 = ApplyOverDayAdjustment(time1);
-
-        if (actualMatches.Count >= 2 && TryParseTime(actualMatches[1].Groups[1].Value, out TimeSpan time2))
-            punch2 = ApplyOverDayAdjustment(time2);
+        // 解析所有实际打卡时间
+        var punchTimes = new List<TimeSpan>();
+        foreach (Match match in actualMatches)
+        {
+            if (TryParseTime(match.Groups[1].Value, out TimeSpan time))
+            {
+                punchTimes.Add(ApplyOverDayAdjustment(time));
+            }
+        }
 
         // 解析缺卡标记
         bool hasMorningMissing = false;
@@ -52,7 +48,7 @@ public class TimeParser
         {
             if (TryParseTime(match.Groups[1].Value, out TimeSpan missingTime))
             {
-                if (missingTime.Hours < 12)
+                if (missingTime.Hours < 15) //因为现在所有班次的要求上班时间都是小于15的,所以可以这样简单判断来推断出缺卡的是早上还是晚上
                     hasMorningMissing = true;
                 else
                     hasEveningMissing = true;
@@ -69,31 +65,52 @@ public class TimeParser
         int eveningHour = 0;
         int eveningMinute = 0;
 
-        if (punch1.HasValue && punch2.HasValue)
+        if (punchTimes.Count >= 1)
         {
-            // 两个打卡时间，按大小排序
-            if (punch1.Value < punch2.Value)
+            // 按时间排序
+            punchTimes.Sort();
+            
+            // 最早的打卡作为早上时间
+            var morningTime = punchTimes[0];
+            SetMorningTime(morningTime, ref morningHour, ref morningMinute);
+            
+            // 最晚的打卡作为晚上时间
+            var eveningTime = punchTimes[punchTimes.Count - 1];
+            SetEveningTime(eveningTime, ref eveningHour, ref eveningMinute);
+            
+            // 如果只有一次打卡，判断是早上还是晚上
+            if (punchTimes.Count == 1)
             {
-                SetMorningTime(punch1.Value, ref morningHour, ref morningMinute);
-                SetEveningTime(punch2.Value, ref eveningHour, ref eveningMinute);
-            }
-            else
-            {
-                SetMorningTime(punch2.Value, ref morningHour, ref morningMinute);
-                SetEveningTime(punch1.Value, ref eveningHour, ref eveningMinute);
-            }
-
-        }
-        else if (punch1.HasValue)// 只有一个打卡时间
-        {
-            //只打了早上
-            if (hasEveningMissing)
-            {
-                SetMorningTime(punch1.Value, ref morningHour, ref morningMinute);
-            }
-            else//打了晚上
-            {
-                SetEveningTime(punch1.Value, ref eveningHour, ref eveningMinute);
+                if (hasEveningMissing)
+                {
+                    // 有晚上缺卡标记，说明这次打卡是早上
+                    eveningHour = 0;
+                    eveningMinute = 0;
+                    hasEveningMissing = true;
+                }
+                else if (hasMorningMissing)
+                {
+                    // 有早上缺卡标记，说明这次打卡是晚上
+                    morningHour = 0;
+                    morningMinute = 0;
+                    hasMorningMissing = true;
+                }
+                else
+                {
+                    // 没有缺卡标记，根据时间判断
+                    if (morningTime.Hours < 12 || morningTime.Hours >= 24)
+                    {
+                        eveningHour = 0;
+                        eveningMinute = 0;
+                        hasEveningMissing = true;
+                    }
+                    else
+                    {
+                        morningHour = 0;
+                        morningMinute = 0;
+                        hasMorningMissing = true;
+                    }
+                }
             }
         }
         else
