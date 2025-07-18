@@ -1,0 +1,61 @@
+<linker>
+  <!-- 保留无命名空间的数据模型类 -->
+  <assembly fullname="Assembly-CSharp">
+    <!-- 直接列出类名（无命名空间） -->
+    <type fullname="Stuff" preserve="all" />
+    <type fullname="StuffMonthData" preserve="all" />
+    <type fullname="WorkShiftTime" preserve="all" />
+    <!-- 添加其他需要保留的类 -->
+  </assembly>
+
+  <!-- 保留MiniExcel核心程序集 -->
+  <assembly fullname="MiniExcelLibs">
+    <!-- 保留主要类型 -->
+    <type fullname="MiniExcelLibs.MiniExcel" preserve="all" />
+    <type fullname="MiniExcelLibs.OpenXml.ExcelOpenXmlReader" preserve="all" />
+    <type fullname="MiniExcelLibs.OpenXml.ExcelOpenXmlWriter" preserve="all" />
+    <type fullname="MiniExcelLibs.Csv.ExcelCsvReader" preserve="all" />
+    <type fullname="MiniExcelLibs.Csv.ExcelCsvWriter" preserve="all" />
+    
+    <!-- 保留所有公共方法和字段 -->
+    <type fullname="MiniExcelLibs.*" preserve="fields and methods" />
+  </assembly>
+  
+  <!-- EPPlus -->
+  <assembly fullname="OfficeOpenXml">
+    <!-- 保留主要类型 -->
+    <type fullname="OfficeOpenXml.ExcelPackage" preserve="all" />
+    <type fullname="OfficeOpenXml.ExcelWorksheet" preserve="all" />
+    <type fullname="OfficeOpenXml.ExcelRange" preserve="all" />
+ 
+    
+    <!-- 保留所有公共方法和字段 -->
+    <type fullname="OfficeOpenXml.*" preserve="fields and methods" />
+  </assembly>
+
+  <!-- EPPlus -->
+  <assembly fullname="OfficeOpenXml.Style">
+    <!-- 保留主要类型 -->
+    <type fullname="OfficeOpenXml.Style.ExcelVerticalAlignment" preserve="all" />
+    <type fullname="OfficeOpenXml.Style.ExcelHorizontalAlignment" preserve="all" />
+    <type fullname="OfficeOpenXml.Style.ExcelFillStyle" preserve="all" />
+    <type fullname="OfficeOpenXml.Style.ExcelBorderStyle" preserve="all" />
+    <type fullname="OfficeOpenXml.Style.ExcelRichText " preserve="all" />
+    <type fullname="OfficeOpenXml.Style.ExcelRichTextCollection " preserve="all" />
+ 
+    
+    <!-- 保留所有公共方法和字段 -->
+    <type fullname="OfficeOpenXml.Style.*" preserve="fields and methods" />
+  </assembly>
+  
+ 
+   <!-- 排除特定程序集的初始化 -->
+  <assembly fullname="Unity.VisualScripting.Core" preserve="nothing" />
+  
+  <!-- 或者只保留必要的类型，忽略其他初始化方法 -->
+  <assembly fullname="Unity.RenderPipelines.Core.Runtime">
+    <type fullname="UnityEngine.Experimental.Rendering.XRSystem" preserve="none" />
+ 
+  </assembly>
+
+</linker>

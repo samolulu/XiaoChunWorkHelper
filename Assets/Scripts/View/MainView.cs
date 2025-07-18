@@ -12,8 +12,17 @@ public class MainView : MonoBehaviour
     public InputField inputField_daka;
     public Text text_output;
 
-    // Start is called before the first frame update
-    void Start()
+	void Awake()
+	{
+		#if UNITY_STANDALONE && !UNITY_EDITOR
+			// 桌面平台使用垂直同步限帧
+			QualitySettings.vSyncCount =  1;         
+			//Application.targetFrameRate =  30;   
+		#endif 
+	}
+
+	// Start is called before the first frame update
+	void Start()
     {
         btn_attend.onClick.AddListener(OnClickAttend);
         btn_openDataPath.onClick.AddListener(OnClickOpenDataPath);

@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class ExcelTool
 {
-    static string extension = ".xlsx";
+    //static string extension = ".xlsx";
     static string path_root = $"{Application.streamingAssetsPath}/Excel";
 
     static string name_attendance = "考勤";
